@@ -332,6 +332,7 @@
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
+      flex-wrap: wrap;
     }
 
     .filter-summary {
@@ -359,6 +360,35 @@
 
     .filter-reset-link:hover {
       text-decoration: underline;
+    }
+
+    /* Indikator Unggah Latar Belakang */
+    .bg-upload-pill {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      color: var(--primary);
+      font-size: 0.71rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .bg-upload-pill.active {
+      display: inline-flex;
+    }
+
+    .bg-upload-spinner {
+      width: 11px;
+      height: 11px;
+      border: 2px solid rgba(29, 78, 216, 0.25);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
     }
 
     .filter-controls {
@@ -411,6 +441,10 @@
       font-size: 0.76rem;
       font-weight: 500;
       color: var(--text);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-subtle);
     }
 
     .search-clear-btn {
@@ -492,6 +526,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       padding: 18px 0 32px;
+      contain: layout style;
     }
 
     .admin-scroll-area::-webkit-scrollbar {
@@ -552,6 +587,8 @@
       border-radius: 6px;
       padding: 10px;
       box-shadow: var(--shadow-sm);
+      content-visibility: auto;
+      contain-intrinsic-size: auto 96px;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
@@ -663,7 +700,6 @@
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -671,7 +707,7 @@
       z-index: 230;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.22s ease;
+      transition: opacity 0.2s ease;
     }
 
     .form-backdrop.open {
@@ -690,8 +726,8 @@
       border-radius: 8px;
       box-shadow: var(--shadow-lg);
       padding: 20px;
-      transform: translateY(12px) scale(0.98);
-      transition: transform 0.25s var(--ease-out);
+      transform: translateY(10px) scale(0.985);
+      transition: transform 0.22s var(--ease-out);
     }
 
     .form-backdrop.open .form-card {
@@ -1078,6 +1114,10 @@
           <div class="filter-bar">
             <div class="filter-status-group">
               <span class="filter-summary" id="filterSummary">Memuat...</span>
+              <span class="bg-upload-pill" id="bgUploadPill" aria-live="polite">
+                <span class="bg-upload-spinner" aria-hidden="true"></span>
+                <span id="bgUploadText">Mengunggah...</span>
+              </span>
               <button type="button" class="filter-reset-link" id="resetFilterLink">Reset</button>
             </div>
 
@@ -1104,12 +1144,12 @@
                 >&times;</button>
               </div>
 
-              <div class="sort-segmented" role="group" aria-label="Urutkan momen">
+              <div class="sort-segmented" role="group" aria-label="Urutkan foto">
                 <button type="button" class="sort-seg-btn active" data-sort="newest">Terbaru</button>
                 <button type="button" class="sort-seg-btn" data-sort="oldest">Terlama</button>
               </div>
 
-              <button type="button" class="add-photo-btn" id="openAddModalBtn" title="Unggah satu atau banyak foto">
+              <button type="button" class="add-photo-btn" id="openAddModalBtn" title="Unggah satu atau banyak foto di latar belakang">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1176,7 +1216,7 @@
               multiple
             />
             <div class="file-dropzone-text" id="dropzoneText">Klik atau seret banyak foto ke sini</div>
-            <div class="file-dropzone-sub">Format: PNG, JPG, JPEG, WebP, GIF, AVIF, SVG, HEIC, dll.</div>
+            <div class="file-dropzone-sub">Diproses di latar belakang — Anda tetap bisa melanjutkan aktivitas.</div>
           </div>
 
           <div class="multi-preview-wrap" id="multiPreviewWrap">
@@ -1188,7 +1228,7 @@
           </div>
 
           <div class="preview-box" id="previewBox">
-            <img id="previewImg" src="" alt="Pratinjau foto" />
+            <img id="previewImg" src="" alt="Pratinjau foto" decoding="async" />
           </div>
         </div>
 
@@ -1223,6 +1263,7 @@
     const TABLE_NAME = 'galeri_foto';
 
     const MAX_FILE_SIZE_BYTES = Infinity;
+    const MAX_THUMB_PREVIEWS = 40;
     const ALLOWED_IMAGE_EXTENSIONS = [
       'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg', 'avif', 'heic', 'heif', 'ico', 'tiff', 'tif'
     ];
@@ -1245,6 +1286,8 @@
     const emptyActionBtn = document.getElementById('emptyActionBtn');
 
     const filterSummary = document.getElementById('filterSummary');
+    const bgUploadPill = document.getElementById('bgUploadPill');
+    const bgUploadText = document.getElementById('bgUploadText');
     const resetFilterLink = document.getElementById('resetFilterLink');
     const searchBox = document.getElementById('searchBox');
     const searchInput = document.getElementById('searchInput');
@@ -1281,9 +1324,11 @@
     let photos = [];
     let filteredPhotos = [];
     let selectedUploadQueue = [];
+    let backgroundUploadJobs = [];
+    let isWorkerRunning = false;
     let searchQuery = '';
     let sortOrder = 'newest';
-    let isUploading = false;
+    let renderScheduled = false;
 
     const bulanDisplay = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const bulanShort = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
@@ -1358,6 +1403,29 @@
       }
     }
 
+    function updateBackgroundIndicator(label = '') {
+      const totalRemaining = backgroundUploadJobs.reduce((sum, job) => {
+        if (job.type === 'edit') return sum + 1;
+        return sum + Math.max(0, job.items.length - job.currentIndex);
+      }, 0);
+
+      if (totalRemaining > 0 || isWorkerRunning) {
+        bgUploadPill.classList.add('active');
+        bgUploadText.textContent = label || `Mengunggah (${Math.max(1, totalRemaining)})...`;
+      } else {
+        bgUploadPill.classList.remove('active');
+      }
+    }
+
+    function scheduleRender() {
+      if (renderScheduled) return;
+      renderScheduled = true;
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        applyFiltersAndRender();
+      });
+    }
+
     function clearUploadQueue() {
       selectedUploadQueue.forEach(entry => {
         if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
@@ -1390,10 +1458,11 @@
         }
 
         const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const canCreatePreview = isEditMode || selectedUploadQueue.length < MAX_THUMB_PREVIEWS;
         selectedUploadQueue.push({
           uid,
           file,
-          previewUrl: URL.createObjectURL(file),
+          previewUrl: canCreatePreview ? URL.createObjectURL(file) : '',
           customDesc: ''
         });
         addedCount++;
@@ -1405,7 +1474,7 @@
       if (rejectedFormat.length) {
         showToast(`${rejectedFormat.length} file dilewati karena tipe file bukan gambar.`);
       } else if (addedCount > 1) {
-        showToast(`${addedCount} foto siap diunggah.`);
+        showToast(`${addedCount} foto masuk antrean pilihan.`);
       }
     }
 
@@ -1453,10 +1522,16 @@
           : 'Unggah Foto';
       }
 
-      multiPreviewList.innerHTML = selectedUploadQueue.map((item, idx) => `
+      const visibleItems = selectedUploadQueue.slice(0, MAX_THUMB_PREVIEWS);
+      const hiddenCount = Math.max(0, count - visibleItems.length);
+
+      multiPreviewList.innerHTML = visibleItems.map((item, idx) => `
         <div class="multi-preview-item" data-uid="${item.uid}">
           <div class="multi-preview-thumb">
-            <img src="${item.previewUrl}" alt="${escapeHtml(item.file.name)}" />
+            ${item.previewUrl
+              ? `<img src="${item.previewUrl}" alt="${escapeHtml(item.file.name)}" loading="lazy" decoding="async" />`
+              : `<div style="height:100%;display:grid;place-items:center;font-size:0.7rem;color:#64748b;">Pratinjau disembunyikan</div>`
+            }
             <button type="button" class="remove-file-btn" data-uid="${item.uid}" title="Hapus foto ini dari daftar">&times;</button>
           </div>
           <div class="multi-preview-info">
@@ -1473,7 +1548,9 @@
             ` : ''}
           </div>
         </div>
-      `).join('');
+      `).join('') + (hiddenCount > 0
+        ? `<div class="multi-preview-item" style="justify-content:center;align-items:center;padding:12px;text-align:center;font-size:0.72rem;color:#475569;">+${hiddenCount} foto lainnya siap diunggah</div>`
+        : '');
     }
 
     multiPreviewList.addEventListener('click', (e) => {
@@ -1511,18 +1588,20 @@
         const { data, error } = await dbClient
           .from(TABLE_NAME)
           .select('id, image_url, storage_path, tanggal, deskripsi, created_at')
-          .order('tanggal', { ascending: false })
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .order('tanggal', { ascending: false });
 
         if (error) throw error;
 
-        photos = (data || []).map(row => ({
+        photos = (data || []).map((row, idx) => ({
           id: row.id,
           src: row.image_url,
           storagePath: row.storage_path || null,
           isoDate: row.tanggal,
           date: formatIndoDate(row.tanggal),
-          desc: row.deskripsi || ''
+          desc: row.deskripsi || '',
+          createdAt: row.created_at || '',
+          fallbackOrder: idx
         }));
 
         loadingState.classList.remove('visible');
@@ -1569,9 +1648,148 @@
       };
     }
 
-    async function savePhotoForm(e) {
+    async function processBackgroundUploadQueue() {
+      if (isWorkerRunning) return;
+      isWorkerRunning = true;
+      updateBackgroundIndicator();
+
+      while (backgroundUploadJobs.length > 0) {
+        const job = backgroundUploadJobs[0];
+
+        try {
+          if (job.type === 'edit') {
+            updateBackgroundIndicator('Menyimpan edit...');
+            showToast('Menyimpan perubahan di latar belakang...', true);
+
+            const existing = photos.find(p => String(p.id) === String(job.editId));
+            const updatePayload = {
+              tanggal: job.tanggal,
+              deskripsi: job.defaultDeskripsi
+            };
+
+            if (job.replacementFile) {
+              const uploaded = await uploadFileToStorage(job.replacementFile, 0);
+              updatePayload.image_url = uploaded.imageUrl;
+              updatePayload.storage_path = uploaded.storagePath;
+
+              if (existing && existing.storagePath) {
+                await dbClient.storage.from(STORAGE_BUCKET).remove([existing.storagePath]);
+              }
+            }
+
+            const { data, error } = await dbClient
+              .from(TABLE_NAME)
+              .update(updatePayload)
+              .eq('id', job.editId)
+              .select()
+              .single();
+
+            if (error) throw error;
+
+            const idx = photos.findIndex(p => String(p.id) === String(job.editId));
+            if (idx !== -1) {
+              photos[idx] = {
+                ...photos[idx],
+                src: data.image_url,
+                storagePath: data.storage_path || null,
+                isoDate: data.tanggal,
+                date: formatIndoDate(data.tanggal),
+                desc: data.deskripsi || '',
+                createdAt: data.created_at || photos[idx].createdAt
+              };
+            }
+
+            scheduleRender();
+            showToast('Perubahan foto berhasil disimpan!');
+            backgroundUploadJobs.shift();
+          } else {
+            const totalFiles = job.items.length;
+            let successCount = 0;
+            let failCount = 0;
+            let lastReason = '';
+
+            while (job.currentIndex < totalFiles) {
+              const idx = job.currentIndex;
+              const entry = job.items[idx];
+              const progressLabel = totalFiles > 1
+                ? `Unggah ${idx + 1}/${totalFiles}`
+                : 'Mengunggah...';
+
+              updateBackgroundIndicator(progressLabel);
+              showToast(
+                totalFiles > 1
+                  ? `Mengunggah foto ${idx + 1} dari ${totalFiles} di latar belakang...`
+                  : 'Mengunggah foto di latar belakang...',
+                true
+              );
+
+              try {
+                const uploaded = await uploadFileToStorage(entry.file, idx);
+                const caption = (entry.customDesc || '').trim() || job.defaultDeskripsi || '';
+
+                const { data, error } = await dbClient
+                  .from(TABLE_NAME)
+                  .insert([
+                    {
+                      image_url: uploaded.imageUrl,
+                      storage_path: uploaded.storagePath,
+                      tanggal: job.tanggal,
+                      deskripsi: caption
+                    }
+                  ])
+                  .select()
+                  .single();
+
+                if (error) throw error;
+
+                photos.unshift({
+                  id: data.id,
+                  src: data.image_url,
+                  storagePath: data.storage_path || null,
+                  isoDate: data.tanggal,
+                  date: formatIndoDate(data.tanggal),
+                  desc: data.deskripsi || '',
+                  createdAt: data.created_at || new Date().toISOString(),
+                  fallbackOrder: -Date.now() - idx
+                });
+
+                successCount++;
+                scheduleRender();
+              } catch (fileErr) {
+                console.error(`Gagal unggah ${entry.file.name}:`, fileErr);
+                failCount++;
+                lastReason = fileErr.message || 'Terjadi kesalahan';
+              }
+
+              job.currentIndex++;
+              updateBackgroundIndicator();
+            }
+
+            backgroundUploadJobs.shift();
+
+            if (failCount === 0) {
+              showToast(
+                successCount > 1
+                  ? `${successCount} foto selesai diunggah!`
+                  : 'Foto selesai diunggah!'
+              );
+            } else {
+              showToast(`${successCount} berhasil, ${failCount} gagal (${lastReason}).`);
+            }
+          }
+        } catch (jobErr) {
+          console.error('Gagal memproses antrean latar belakang:', jobErr);
+          showToast(`Gagal menyimpan: ${jobErr.message || 'Terjadi kesalahan'}`);
+          backgroundUploadJobs.shift();
+        }
+      }
+
+      isWorkerRunning = false;
+      updateBackgroundIndicator();
+    }
+
+    function savePhotoForm(e) {
       e.preventDefault();
-      if (isUploading) return;
       if (!dbClient) {
         showToast('Koneksi penyimpanan galeri belum siap.');
         return;
@@ -1596,126 +1814,34 @@
         customDesc: entry.customDesc
       }));
 
-      // Tutup form segera setelah tombol ditekan
-      closePhotoFormModal(true);
+      // Tutup modal segera agar proses berjalan ringan di latar belakang
+      closePhotoFormModal();
 
-      isUploading = true;
-      openAddModalBtn.disabled = true;
-
-      try {
-        if (editId) {
-          showToast('Menyimpan perubahan foto...', true);
-          const existing = photos.find(p => String(p.id) === String(editId));
-          const updatePayload = {
-            tanggal,
-            deskripsi: defaultDeskripsi
-          };
-
-          if (queueSnapshot.length > 0) {
-            const uploaded = await uploadFileToStorage(queueSnapshot[0].file, 0);
-            updatePayload.image_url = uploaded.imageUrl;
-            updatePayload.storage_path = uploaded.storagePath;
-
-            if (existing && existing.storagePath) {
-              await dbClient.storage.from(STORAGE_BUCKET).remove([existing.storagePath]);
-            }
-          }
-
-          const { data, error } = await dbClient
-            .from(TABLE_NAME)
-            .update(updatePayload)
-            .eq('id', editId)
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          const idx = photos.findIndex(p => String(p.id) === String(editId));
-          if (idx !== -1) {
-            photos[idx] = {
-              id: data.id,
-              src: data.image_url,
-              storagePath: data.storage_path || null,
-              isoDate: data.tanggal,
-              date: formatIndoDate(data.tanggal),
-              desc: data.deskripsi || ''
-            };
-          }
-
-          applyFiltersAndRender();
-          showToast('Perubahan foto berhasil disimpan!');
-        } else {
-          const totalFiles = queueSnapshot.length;
-          const newlyInserted = [];
-          const failedFiles = [];
-
-          for (let i = 0; i < totalFiles; i++) {
-            const entry = queueSnapshot[i];
-            showToast(
-              totalFiles > 1
-                ? `Mengunggah foto ${i + 1} dari ${totalFiles}...`
-                : 'Mengunggah foto...',
-              true
-            );
-
-            try {
-              const uploaded = await uploadFileToStorage(entry.file, i);
-              const caption = (entry.customDesc || '').trim() || defaultDeskripsi || '';
-
-              const { data, error } = await dbClient
-                .from(TABLE_NAME)
-                .insert([
-                  {
-                    image_url: uploaded.imageUrl,
-                    storage_path: uploaded.storagePath,
-                    tanggal,
-                    deskripsi: caption
-                  }
-                ])
-                .select()
-                .single();
-
-              if (error) throw error;
-
-              newlyInserted.push({
-                id: data.id,
-                src: data.image_url,
-                storagePath: data.storage_path || null,
-                isoDate: data.tanggal,
-                date: formatIndoDate(data.tanggal),
-                desc: data.deskripsi || ''
-              });
-            } catch (fileErr) {
-              console.error(`Gagal unggah ${entry.file.name}:`, fileErr);
-              failedFiles.push({ name: entry.file.name, reason: fileErr.message });
-            }
-          }
-
-          if (newlyInserted.length > 0) {
-            photos = [...newlyInserted.reverse(), ...photos];
-          }
-
-          applyFiltersAndRender();
-
-          if (failedFiles.length === 0) {
-            showToast(
-              newlyInserted.length > 1
-                ? `${newlyInserted.length} foto berhasil diunggah!`
-                : 'Foto berhasil diunggah!'
-            );
-          } else {
-            showToast(
-              `${newlyInserted.length} berhasil, ${failedFiles.length} gagal (${failedFiles[0].reason}).`
-            );
-          }
-        }
-      } catch (err) {
-        console.error('Gagal menyimpan:', err);
-        showToast(`Gagal menyimpan: ${err.message || 'Terjadi kesalahan'}`);
-      } finally {
-        isUploading = false;
-        openAddModalBtn.disabled = false;
+      if (editId) {
+        backgroundUploadJobs.push({
+          type: 'edit',
+          editId,
+          tanggal,
+          defaultDeskripsi,
+          replacementFile: queueSnapshot.length > 0 ? queueSnapshot[0].file : null
+        });
+      } else {
+        backgroundUploadJobs.push({
+          type: 'upload',
+          tanggal,
+          defaultDeskripsi,
+          items: queueSnapshot,
+          currentIndex: 0
+        });
+        showToast(
+          queueSnapshot.length > 1
+            ? `${queueSnapshot.length} foto dijadwalkan di latar belakang...`
+            : 'Foto dijadwalkan di latar belakang...'
+        );
       }
+
+      updateBackgroundIndicator();
+      processBackgroundUploadQueue();
     }
 
     async function deletePhotoItem(item) {
@@ -1746,6 +1872,29 @@
       }
     }
 
+    function comparePhotoOrder(a, b) {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : NaN;
+      const hasValidTimeA = !Number.isNaN(timeA);
+      const hasValidTimeB = !Number.isNaN(timeB);
+
+      if (sortOrder === 'newest') {
+        if (hasValidTimeA && hasValidTimeB && timeA !== timeB) {
+          return timeB - timeA;
+        }
+        const dateCmp = (b.isoDate || '').localeCompare(a.isoDate || '');
+        if (dateCmp !== 0) return dateCmp;
+        return (a.fallbackOrder ?? 0) - (b.fallbackOrder ?? 0);
+      } else {
+        if (hasValidTimeA && hasValidTimeB && timeA !== timeB) {
+          return timeA - timeB;
+        }
+        const dateCmp = (a.isoDate || '').localeCompare(b.isoDate || '');
+        if (dateCmp !== 0) return dateCmp;
+        return (b.fallbackOrder ?? 0) - (a.fallbackOrder ?? 0);
+      }
+    }
+
     function applyFiltersAndRender() {
       let list = [...photos];
       const keyword = searchQuery.trim().toLowerCase();
@@ -1761,11 +1910,7 @@
         searchBox.classList.remove('has-value');
       }
 
-      list.sort((a, b) => {
-        return sortOrder === 'newest'
-          ? b.isoDate.localeCompare(a.isoDate)
-          : a.isoDate.localeCompare(b.isoDate);
-      });
+      list.sort(comparePhotoOrder);
 
       resetFilterLink.classList.toggle('visible', Boolean(keyword));
       filterSummary.textContent = keyword
@@ -1799,7 +1944,7 @@
         return `
           <div class="manage-item" data-index="${idx}">
             <div class="manage-thumb">
-              <img src="${item.src}" alt="${escapeHtml(cleanDesc || item.date)}" loading="lazy" />
+              <img src="${item.src}" alt="${escapeHtml(cleanDesc || item.date)}" loading="lazy" decoding="async" />
             </div>
             <div class="manage-info">
               <div class="manage-date">${item.date}</div>
@@ -1814,8 +1959,6 @@
           </div>
         `;
       }).join('');
-
-      adminScrollArea.scrollTop = 0;
     }
 
     manageList.addEventListener('click', (e) => {
@@ -1864,10 +2007,6 @@
     resetFilterLink.addEventListener('click', resetAllFilters);
 
     function openPhotoFormModal(itemToEdit = null) {
-      if (isUploading) {
-        showToast('Proses unggah sebelumnya masih berjalan, tunggu sebentar...');
-        return;
-      }
       photoForm.reset();
       clearUploadQueue();
       previewBox.classList.remove('visible');
@@ -1900,16 +2039,15 @@
       photoFormModal.setAttribute('aria-hidden', 'false');
     }
 
-    function closePhotoFormModal(force = false) {
-      if (isUploading && !force) return;
+    function closePhotoFormModal() {
       clearUploadQueue();
       photoFormModal.classList.remove('open');
       photoFormModal.setAttribute('aria-hidden', 'true');
     }
 
     openAddModalBtn.addEventListener('click', () => openPhotoFormModal());
-    closeFormModalBtn.addEventListener('click', () => closePhotoFormModal());
-    cancelFormBtn.addEventListener('click', () => closePhotoFormModal());
+    closeFormModalBtn.addEventListener('click', closePhotoFormModal);
+    cancelFormBtn.addEventListener('click', closePhotoFormModal);
 
     photoFormModal.addEventListener('click', (e) => {
       if (e.target === photoFormModal) closePhotoFormModal();
