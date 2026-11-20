@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kelola Galeri — Syafaat Nuryadi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet" />
+  <!-- Client Database & Storage v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #f8f9fb;
+      --surface: #ffffff;
+      --surface-alt: #f1f5f9;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #64748b;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --primary: #1d4ed8;
+      --primary-hover: #1e40af;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --danger-soft: #fef2f2;
+      --gold: #c89b3c;
+      --gold-light: #e2bd6b;
+      --gold-soft: #fdf8eb;
+      --gold-border: rgba(200, 155, 60, 0.45);
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 12px 28px -6px rgba(15, 23, 42, 0.09), 0 4px 10px -4px rgba(15, 23, 42, 0.05);
+      --shadow-lg: 0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 8px 20px -6px rgba(15, 23, 42, 0.12);
+      --container: 1100px;
+      --header-h: 64px;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      font-family: var(--font-sans);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    main {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .container {
+      width: 100%;
+      max-width: var(--container);
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Header */
+    .header {
+      position: relative;
+      flex-shrink: 0;
+      z-index: 100;
+      height: var(--header-h);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+    }
+
+    .header-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 0.98rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .nav-desktop {
+      display: none;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-link {
+      position: relative;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.25s var(--ease-out);
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .nav-link:hover::after,
+    .nav-link.active::after {
+      transform: scaleX(1);
+    }
+
+    .menu-btn {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .menu-btn svg line {
+      transition: transform 0.25s var(--ease-out), opacity 0.2s ease;
+      transform-origin: center;
+    }
+
+    .menu-btn.open svg line:first-child {
+      transform: translateY(4px) rotate(45deg);
+    }
+
+    .menu-btn.open svg line:last-child {
+      transform: translateY(-4px) rotate(-45deg);
+    }
+
+    .mobile-nav {
+      position: fixed;
+      top: var(--header-h);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(-120%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s var(--ease-out), opacity 0.25s ease;
+      z-index: 99;
+      box-shadow: var(--shadow-md);
+    }
+
+    .mobile-nav.open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-nav a {
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .mobile-nav a.active {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .mobile-nav a:last-child {
+      border-bottom: none;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 5px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      border: 1px solid var(--primary);
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s var(--ease-out);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background: var(--surface-alt);
+      border-color: var(--text-subtle);
+    }
+
+    .btn-danger-outline {
+      background: var(--surface);
+      color: var(--danger);
+      border-color: rgba(220, 38, 38, 0.35);
+    }
+
+    .btn-danger-outline:hover:not(:disabled) {
+      background: var(--danger-soft);
+      border-color: var(--danger);
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 0.78rem;
+    }
+
+    /* Top Control Dock */
+    .filter-dock {
+      flex-shrink: 0;
+      background: var(--bg);
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      z-index: 20;
+    }
+
+    .filter-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--gold);
+      border-radius: 6px;
+      padding: 7px 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .filter-status-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .filter-summary {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .filter-reset-link {
+      display: none;
+      background: transparent;
+      border: none;
+      padding: 1px 0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    .filter-reset-link.visible {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .filter-reset-link:hover {
+      text-decoration: underline;
+    }
+
+    .filter-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .search-box {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      height: 31px;
+      width: 100%;
+      max-width: 290px;
+      padding: 0 9px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .search-box:focus-within {
+      background: var(--surface);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-soft);
+    }
+
+    .search-box.has-value {
+      background: var(--surface);
+      border-color: var(--gold-border);
+      box-shadow: 0 0 0 2px var(--gold-soft);
+    }
+
+    .search-icon {
+      color: var(--text-subtle);
+      flex-shrink: 0;
+    }
+
+    .search-input {
+      width: 100%;
+      min-width: 0;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .search-clear-btn {
+      width: 18px;
+      height: 18px;
+      border: none;
+      border-radius: 3px;
+      background: rgba(15, 23, 42, 0.08);
+      color: var(--text);
+      font-size: 0.85rem;
+      line-height: 1;
+      display: none;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .search-box.has-value .search-clear-btn {
+      display: grid;
+    }
+
+    .sort-segmented {
+      display: inline-flex;
+      align-items: center;
+      height: 31px;
+      padding: 2px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .sort-seg-btn {
+      height: 25px;
+      padding: 0 9px;
+      border: none;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.73rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .sort-seg-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    .add-photo-btn {
+      height: 31px;
+      padding: 0 11px;
+      border: 1px solid var(--primary);
+      border-radius: 5px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 0.74rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .add-photo-btn:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    /* Scrollable Admin List Area */
+    .admin-scroll-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 18px 0 32px;
+    }
+
+    .admin-scroll-area::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    .admin-scroll-area::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 999px;
+    }
+
+    .loading-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 64px 20px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+
+    .loading-state.visible {
+      display: flex;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    /* Manage List */
+    .manage-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 760px) {
+      .manage-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+    }
+
+    .manage-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      border-radius: 6px;
+      padding: 10px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .manage-item:hover {
+      border-color: var(--gold-border);
+      box-shadow: var(--shadow-md);
+    }
+
+    .manage-thumb {
+      width: 74px;
+      height: 74px;
+      border-radius: 5px;
+      overflow: hidden;
+      background: var(--surface-alt);
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+
+    .manage-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .manage-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .manage-date {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #9a6e17;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+
+    .manage-desc {
+      font-size: 0.83rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.38;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .manage-desc.is-empty {
+      color: var(--text-subtle);
+      font-style: italic;
+    }
+
+    .manage-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      display: none;
+      text-align: center;
+      padding: 52px 20px;
+      background: var(--surface);
+      border: 1px dashed var(--border-strong);
+      border-radius: 6px;
+    }
+
+    .empty-state.visible {
+      display: block;
+    }
+
+    .empty-state p {
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .empty-state .empty-sub {
+      color: var(--text-subtle);
+      font-size: 0.82rem;
+      font-weight: 400;
+      max-width: 460px;
+      margin: 0 auto 16px;
+    }
+
+    /* Footer */
+    .footer {
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 8px 0;
+      z-index: 20;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.74rem;
+      font-weight: 500;
+      color: var(--text-subtle);
+    }
+
+    /* Modal Form Tambah / Edit Foto */
+    .form-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 230;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+
+    .form-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .form-card {
+      width: 100%;
+      max-width: 540px;
+      max-height: 92vh;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--gold);
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      padding: 20px;
+      transform: translateY(12px) scale(0.98);
+      transition: transform 0.25s var(--ease-out);
+    }
+
+    .form-backdrop.open .form-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .form-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .form-close {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text-muted);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .form-close:hover {
+      background: var(--surface-alt);
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .form-label-row .form-label {
+      margin-bottom: 0;
+    }
+
+    .clear-queue-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--danger);
+      cursor: pointer;
+    }
+
+    .clear-queue-btn.visible {
+      display: inline-block;
+    }
+
+    .file-dropzone {
+      position: relative;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: 6px;
+      background: var(--bg);
+      padding: 18px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .file-dropzone:hover,
+    .file-dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .file-dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-dropzone-text {
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .file-dropzone-sub {
+      font-size: 0.72rem;
+      color: var(--text-subtle);
+      margin-top: 3px;
+    }
+
+    .multi-preview-wrap {
+      display: none;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      padding: 10px;
+    }
+
+    .multi-preview-wrap.visible {
+      display: block;
+    }
+
+    .multi-preview-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .multi-preview-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .multi-preview-item {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--gold-border);
+      border-radius: 5px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .multi-preview-thumb {
+      position: relative;
+      height: 92px;
+      background: var(--surface-alt);
+    }
+
+    .multi-preview-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .remove-file-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, 0.78);
+      color: #ffffff;
+      font-size: 0.9rem;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .remove-file-btn:hover {
+      background: var(--danger);
+    }
+
+    .multi-preview-info {
+      padding: 6px 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .multi-file-name {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .multi-file-size {
+      font-size: 0.66rem;
+      color: var(--text-subtle);
+    }
+
+    .multi-item-caption {
+      width: 100%;
+      padding: 4px 6px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 0.7rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+    }
+
+    .multi-item-caption:focus {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .preview-box {
+      display: none;
+      margin-top: 10px;
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--gold-border);
+      background: var(--surface-alt);
+    }
+
+    .preview-box.visible {
+      display: block;
+    }
+
+    .preview-box img {
+      width: 100%;
+      max-height: 190px;
+      object-fit: cover;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--border-strong);
+      border-radius: 5px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.84rem;
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 74px;
+    }
+
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(90px) scale(0.95);
+      background: var(--primary);
+      color: #ffffff;
+      padding: 11px 18px;
+      border-radius: 4px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s var(--ease-out), opacity 0.25s ease;
+      text-align: center;
+      max-width: 90vw;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    @media (max-width: 680px) {
+      .filter-dock {
+        padding: 7px 0;
+      }
+      .filter-panel {
+        padding: 6px 10px;
+      }
+      .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+      }
+      .filter-status-group {
+        justify-content: space-between;
+      }
+      .filter-controls {
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+      }
+      .search-box {
+        max-width: none;
+        flex: 1;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .nav-desktop {
+        display: flex;
+      }
+      .menu-btn,
+      .mobile-nav {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="../index.html#beranda" class="brand">
+        <span>Syafaat Nuryadi</span>
+        <span class="brand-mark">/.my.id.</span>
+      </a>
+
+      <nav class="nav-desktop">
+        <a href="../index.html#keahlian" class="nav-link">Keahlian</a>
+        <a href="../index.html#proyek" class="nav-link">Proyek</a>
+        <a href="../index.html#pengalaman" class="nav-link">Pengalaman</a>
+        <a href="./" class="nav-link">Galeri</a>
+        <a href="./admin.html" class="nav-link active">Admin</a>
+        <a href="../index.html#kontak" class="btn btn-primary btn-sm">Kontak</a>
+      </nav>
+
+      <button class="menu-btn" id="menuBtn" aria-label="Buka menu navigasi">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="3" y1="8" x2="21" y2="8"></line>
+          <line x1="3" y1="16" x2="21" y2="16"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="../index.html#beranda">Beranda</a>
+    <a href="../index.html#keahlian">Keahlian</a>
+    <a href="../index.html#proyek">Proyek</a>
+    <a href="../index.html#pengalaman">Pengalaman</a>
+    <a href="./">Galeri</a>
+    <a href="./admin.html" class="active">Admin</a>
+    <a href="../index.html#kontak">Kontak</a>
+  </nav>
+
+  <main>
+    <!-- Toolbar Kelola Foto -->
+    <div class="filter-dock">
+      <div class="container">
+        <div class="filter-panel" aria-label="Kelola foto galeri">
+          <div class="filter-bar">
+            <div class="filter-status-group">
+              <span class="filter-summary" id="filterSummary">Memuat...</span>
+              <button type="button" class="filter-reset-link" id="resetFilterLink">Reset</button>
+            </div>
+
+            <div class="filter-controls">
+              <div class="search-box" id="searchBox">
+                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                  type="text"
+                  id="searchInput"
+                  class="search-input"
+                  placeholder="Cari tanggal, bulan, tahun, atau deskripsi..."
+                  aria-label="Cari foto untuk dikelola"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  id="clearSearchBtn"
+                  class="search-clear-btn"
+                  title="Hapus pencarian"
+                  aria-label="Hapus pencarian"
+                >&times;</button>
+              </div>
+
+              <div class="sort-segmented" role="group" aria-label="Urutkan momen">
+                <button type="button" class="sort-seg-btn active" data-sort="newest">Terbaru</button>
+                <button type="button" class="sort-seg-btn" data-sort="oldest">Terlama</button>
+              </div>
+
+              <button type="button" class="add-photo-btn" id="openAddModalBtn" title="Unggah satu atau banyak foto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Unggah</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Area Scroll Daftar Atur & Edit Foto -->
+    <div class="admin-scroll-area" id="adminScrollArea">
+      <div class="container">
+        <div class="loading-state visible" id="loadingState">
+          <div class="spinner"></div>
+          <span>Memuat daftar foto...</span>
+        </div>
+
+        <div class="manage-list" id="manageList"></div>
+
+        <div class="empty-state" id="emptyState">
+          <p id="emptyTitle">Belum ada foto tersimpan di galeri.</p>
+          <p class="empty-sub" id="emptySub">Klik tombol "+ Unggah" untuk menambahkan satu atau banyak foto sekaligus.</p>
+          <button type="button" class="btn btn-primary btn-sm" id="emptyActionBtn">+ Unggah Foto</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>&copy; <span id="year"></span> Syafaat Nuryadi.</span>
+    </div>
+  </footer>
+
+  <!-- Modal Form Unggah & Edit Foto -->
+  <div class="form-backdrop" id="photoFormModal" aria-hidden="true">
+    <div class="form-card" role="dialog" aria-modal="true" aria-labelledby="formModalTitle">
+      <div class="form-header">
+        <h2 class="form-title" id="formModalTitle">Unggah Foto</h2>
+        <button type="button" class="form-close" id="closeFormModalBtn" aria-label="Tutup form">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="photoForm">
+        <input type="hidden" id="editPhotoId" value="" />
+
+        <div class="form-group">
+          <div class="form-label-row">
+            <label class="form-label" for="photoFileInput" id="fileFieldLabel">Pilih File Foto (Bisa Banyak Sekaligus)</label>
+            <button type="button" class="clear-queue-btn" id="clearSelectedFilesBtn">Hapus Semua Pilihan</button>
+          </div>
+          <div class="file-dropzone" id="fileDropzone">
+            <input
+              type="file"
+              id="photoFileInput"
+              accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.avif,.bmp,.svg,.heic,.heif,.tiff,.tif"
+              multiple
+            />
+            <div class="file-dropzone-text" id="dropzoneText">Klik atau seret banyak foto ke sini</div>
+            <div class="file-dropzone-sub">Format: PNG, JPG, JPEG, WebP, GIF, AVIF, SVG, HEIC, dll.</div>
+          </div>
+
+          <div class="multi-preview-wrap" id="multiPreviewWrap">
+            <div class="multi-preview-meta">
+              <span id="multiPreviewCount">0 foto dipilih</span>
+              <span id="multiPreviewTotalSize">0 MB</span>
+            </div>
+            <div class="multi-preview-list" id="multiPreviewList"></div>
+          </div>
+
+          <div class="preview-box" id="previewBox">
+            <img id="previewImg" src="" alt="Pratinjau foto" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="photoDateInput">Tanggal Momen</label>
+          <input type="date" id="photoDateInput" class="form-control" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="photoDescInput" id="descFieldLabel">Deskripsi Foto (Opsional)</label>
+          <textarea
+            id="photoDescInput"
+            class="form-control"
+            placeholder="Tulis keterangan momen (opsional, berlaku untuk semua foto yang dipilih atau isi keterangan khusus pada tiap foto di atas)..."
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="cancelFormBtn">Batal</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="submitFormBtn">Unggah Foto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Memproses...</div>
+
+  <script>
+    const SUPABASE_URL = 'https://ixfokmldbkmgjsjcuxpy.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_65c36nE8s8kER37H-vQOUg_a06QfX_4';
+    const STORAGE_BUCKET = 'galeri';
+    const TABLE_NAME = 'galeri_foto';
+
+    const MAX_FILE_SIZE_BYTES = Infinity;
+    const ALLOWED_IMAGE_EXTENSIONS = [
+      'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg', 'avif', 'heic', 'heif', 'ico', 'tiff', 'tif'
+    ];
+
+    const isBackendConfigured =
+      SUPABASE_URL.startsWith('https://') &&
+      !SUPABASE_URL.includes('YOUR_PROJECT_ID') &&
+      SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
+
+    const dbClient = isBackendConfigured
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    const adminScrollArea = document.getElementById('adminScrollArea');
+    const loadingState = document.getElementById('loadingState');
+    const manageList = document.getElementById('manageList');
+    const emptyState = document.getElementById('emptyState');
+    const emptyTitle = document.getElementById('emptyTitle');
+    const emptySub = document.getElementById('emptySub');
+    const emptyActionBtn = document.getElementById('emptyActionBtn');
+
+    const filterSummary = document.getElementById('filterSummary');
+    const resetFilterLink = document.getElementById('resetFilterLink');
+    const searchBox = document.getElementById('searchBox');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const sortButtons = document.querySelectorAll('.sort-seg-btn');
+
+    const menuBtn = document.getElementById('menuBtn');
+    const mobileNav = document.getElementById('mobileNav');
+    const toast = document.getElementById('toast');
+
+    const openAddModalBtn = document.getElementById('openAddModalBtn');
+    const photoFormModal = document.getElementById('photoFormModal');
+    const formModalTitle = document.getElementById('formModalTitle');
+    const closeFormModalBtn = document.getElementById('closeFormModalBtn');
+    const cancelFormBtn = document.getElementById('cancelFormBtn');
+    const photoForm = document.getElementById('photoForm');
+    const editPhotoIdInput = document.getElementById('editPhotoId');
+    const fileFieldLabel = document.getElementById('fileFieldLabel');
+    const clearSelectedFilesBtn = document.getElementById('clearSelectedFilesBtn');
+    const fileDropzone = document.getElementById('fileDropzone');
+    const photoFileInput = document.getElementById('photoFileInput');
+    const dropzoneText = document.getElementById('dropzoneText');
+    const multiPreviewWrap = document.getElementById('multiPreviewWrap');
+    const multiPreviewCount = document.getElementById('multiPreviewCount');
+    const multiPreviewTotalSize = document.getElementById('multiPreviewTotalSize');
+    const multiPreviewList = document.getElementById('multiPreviewList');
+    const previewBox = document.getElementById('previewBox');
+    const previewImg = document.getElementById('previewImg');
+    const photoDateInput = document.getElementById('photoDateInput');
+    const descFieldLabel = document.getElementById('descFieldLabel');
+    const photoDescInput = document.getElementById('photoDescInput');
+    const submitFormBtn = document.getElementById('submitFormBtn');
+
+    let photos = [];
+    let filteredPhotos = [];
+    let selectedUploadQueue = [];
+    let searchQuery = '';
+    let sortOrder = 'newest';
+    let isUploading = false;
+
+    const bulanDisplay = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const bulanShort = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
+    const bulanFull = [
+      'januari', 'februari', 'maret', 'april', 'mei', 'juni',
+      'juli', 'agustus', 'september', 'oktober', 'november', 'desember'
+    ];
+
+    function formatIndoDate(isoDate) {
+      if (!isoDate) return '-';
+      const parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      const [year, monthStr, dayStr] = parts;
+      const monthIdx = Number(monthStr) - 1;
+      const monthName = bulanDisplay[monthIdx] || monthStr;
+      return `${dayStr} ${monthName} ${year}`;
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const mb = bytes / (1024 * 1024);
+      if (mb >= 1) return `${mb.toFixed(2)} MB`;
+      const kb = bytes / 1024;
+      return `${Math.round(kb)} KB`;
+    }
+
+    function isValidImageFile(file) {
+      if (!file) return false;
+      if (file.type && file.type.startsWith('image/')) return true;
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      return ALLOWED_IMAGE_EXTENSIONS.includes(ext);
+    }
+
+    function escapeHtml(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function buildSearchIndex(item) {
+      const parts = (item.isoDate || '').split('-');
+      if (parts.length !== 3) return `${item.date} ${item.desc}`.toLowerCase();
+      const [year, monthStr, dayStr] = parts;
+      const monthIdx = Number(monthStr) - 1;
+      const dayNum = String(Number(dayStr));
+      const mShort = bulanShort[monthIdx] || '';
+      const mFull = bulanFull[monthIdx] || '';
+
+      return [
+        item.date,
+        item.isoDate,
+        `${dayStr}/${monthStr}/${year}`,
+        `${dayStr}-${monthStr}-${year}`,
+        `${dayNum} ${mShort} ${year}`,
+        `${dayNum} ${mFull} ${year}`,
+        `${dayStr} ${mFull} ${year}`,
+        mFull,
+        mShort,
+        year,
+        item.desc
+      ].join(' ').toLowerCase();
+    }
+
+    function showToast(msg, persist = false) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toast._timer);
+      if (!persist) {
+        toast._timer = setTimeout(() => toast.classList.remove('show'), 3200);
+      }
+    }
+
+    function clearUploadQueue() {
+      selectedUploadQueue.forEach(entry => {
+        if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+      });
+      selectedUploadQueue = [];
+      photoFileInput.value = '';
+      renderUploadQueue();
+    }
+
+    function addFilesToQueue(fileList) {
+      const incoming = Array.from(fileList || []);
+      if (!incoming.length) return;
+
+      const isEditMode = Boolean(editPhotoIdInput.value.trim());
+      if (isEditMode) {
+        clearUploadQueue();
+      }
+
+      const rejectedFormat = [];
+      let addedCount = 0;
+      const filesToProcess = isEditMode ? [incoming[0]] : incoming;
+
+      for (const file of filesToProcess) {
+        if (!isValidImageFile(file)) {
+          rejectedFormat.push(file.name);
+          continue;
+        }
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          continue;
+        }
+
+        const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        selectedUploadQueue.push({
+          uid,
+          file,
+          previewUrl: URL.createObjectURL(file),
+          customDesc: ''
+        });
+        addedCount++;
+      }
+
+      photoFileInput.value = '';
+      renderUploadQueue();
+
+      if (rejectedFormat.length) {
+        showToast(`${rejectedFormat.length} file dilewati karena tipe file bukan gambar.`);
+      } else if (addedCount > 1) {
+        showToast(`${addedCount} foto siap diunggah.`);
+      }
+    }
+
+    function removeFileFromQueue(uid) {
+      const idx = selectedUploadQueue.findIndex(item => item.uid === uid);
+      if (idx === -1) return;
+      if (selectedUploadQueue[idx].previewUrl) {
+        URL.revokeObjectURL(selectedUploadQueue[idx].previewUrl);
+      }
+      selectedUploadQueue.splice(idx, 1);
+      renderUploadQueue();
+    }
+
+    function renderUploadQueue() {
+      const isEditMode = Boolean(editPhotoIdInput.value.trim());
+      const count = selectedUploadQueue.length;
+
+      if (count === 0) {
+        multiPreviewWrap.classList.remove('visible');
+        clearSelectedFilesBtn.classList.remove('visible');
+        multiPreviewList.innerHTML = '';
+        dropzoneText.textContent = isEditMode
+          ? 'Klik atau seret 1 foto pengganti ke sini'
+          : 'Klik atau seret banyak foto ke sini (bisa tambah lagi)';
+        if (!isEditMode) {
+          submitFormBtn.textContent = 'Unggah Foto';
+        }
+        return;
+      }
+
+      previewBox.classList.remove('visible');
+      multiPreviewWrap.classList.add('visible');
+      clearSelectedFilesBtn.classList.toggle('visible', !isEditMode);
+
+      const totalBytes = selectedUploadQueue.reduce((sum, item) => sum + item.file.size, 0);
+      multiPreviewCount.textContent = `${count} foto dipilih`;
+      multiPreviewTotalSize.textContent = `Total: ${formatBytes(totalBytes)}`;
+      dropzoneText.textContent = isEditMode
+        ? selectedUploadQueue[0].file.name
+        : `${count} foto dipilih — klik untuk menambah foto lagi`;
+
+      if (!isEditMode) {
+        submitFormBtn.textContent = count > 1
+          ? `Unggah ${count} Foto`
+          : 'Unggah Foto';
+      }
+
+      multiPreviewList.innerHTML = selectedUploadQueue.map((item, idx) => `
+        <div class="multi-preview-item" data-uid="${item.uid}">
+          <div class="multi-preview-thumb">
+            <img src="${item.previewUrl}" alt="${escapeHtml(item.file.name)}" />
+            <button type="button" class="remove-file-btn" data-uid="${item.uid}" title="Hapus foto ini dari daftar">&times;</button>
+          </div>
+          <div class="multi-preview-info">
+            <div class="multi-file-name" title="${escapeHtml(item.file.name)}">${idx + 1}. ${escapeHtml(item.file.name)}</div>
+            <div class="multi-file-size">${formatBytes(item.file.size)}</div>
+            ${!isEditMode ? `
+              <input
+                type="text"
+                class="multi-item-caption"
+                data-uid="${item.uid}"
+                value="${escapeHtml(item.customDesc)}"
+                placeholder="Keterangan khusus (opsional)..."
+              />
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    multiPreviewList.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('.remove-file-btn');
+      if (!removeBtn) return;
+      e.stopPropagation();
+      removeFileFromQueue(removeBtn.dataset.uid);
+    });
+
+    multiPreviewList.addEventListener('input', (e) => {
+      const captionInput = e.target.closest('.multi-item-caption');
+      if (!captionInput) return;
+      const target = selectedUploadQueue.find(item => item.uid === captionInput.dataset.uid);
+      if (target) target.customDesc = captionInput.value;
+    });
+
+    clearSelectedFilesBtn.addEventListener('click', clearUploadQueue);
+
+    async function loadPhotosForAdmin() {
+      loadingState.classList.add('visible');
+      manageList.innerHTML = '';
+      emptyState.classList.remove('visible');
+
+      if (!dbClient) {
+        loadingState.classList.remove('visible');
+        filterSummary.textContent = '0 Foto';
+        emptyTitle.textContent = 'Konfigurasi Galeri Belum Diisi';
+        emptySub.textContent = 'Silakan periksa kembali pengaturan koneksi penyimpanan.';
+        emptyActionBtn.style.display = 'none';
+        emptyState.classList.add('visible');
+        return;
+      }
+
+      try {
+        const { data, error } = await dbClient
+          .from(TABLE_NAME)
+          .select('id, image_url, storage_path, tanggal, deskripsi, created_at')
+          .order('tanggal', { ascending: false })
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        photos = (data || []).map(row => ({
+          id: row.id,
+          src: row.image_url,
+          storagePath: row.storage_path || null,
+          isoDate: row.tanggal,
+          date: formatIndoDate(row.tanggal),
+          desc: row.deskripsi || ''
+        }));
+
+        loadingState.classList.remove('visible');
+        applyFiltersAndRender();
+      } catch (err) {
+        console.error('Gagal memuat data:', err);
+        loadingState.classList.remove('visible');
+        filterSummary.textContent = 'Gagal memuat';
+        emptyTitle.textContent = 'Gagal memuat daftar foto';
+        emptySub.textContent = err.message || 'Periksa koneksi internet lalu coba muat ulang.';
+        emptyActionBtn.textContent = 'Coba Muat Ulang';
+        emptyActionBtn.style.display = 'inline-flex';
+        emptyActionBtn.onclick = loadPhotosForAdmin;
+        emptyState.classList.add('visible');
+      }
+    }
+
+    async function uploadFileToStorage(file, indexOffset = 0) {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const safeBase = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[^a-zA-Z0-9-_]/g, '-')
+        .slice(0, 36);
+      const uniqueSuffix = `${Date.now()}-${indexOffset}-${Math.random().toString(36).slice(2, 7)}`;
+      const storagePath = `momen/${uniqueSuffix}-${safeBase || 'foto'}.${ext}`;
+
+      const { error: uploadError } = await dbClient.storage
+        .from(STORAGE_BUCKET)
+        .upload(storagePath, file, {
+          contentType: file.type || undefined,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = dbClient.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(storagePath);
+
+      return {
+        imageUrl: publicData.publicUrl,
+        storagePath
+      };
+    }
+
+    async function savePhotoForm(e) {
+      e.preventDefault();
+      if (isUploading) return;
+      if (!dbClient) {
+        showToast('Koneksi penyimpanan galeri belum siap.');
+        return;
+      }
+
+      const editId = editPhotoIdInput.value.trim();
+      const tanggal = photoDateInput.value;
+      const defaultDeskripsi = photoDescInput.value.trim();
+
+      if (!tanggal) {
+        showToast('Tanggal momen wajib diisi.');
+        return;
+      }
+
+      if (!editId && selectedUploadQueue.length === 0) {
+        showToast('Pilih minimal satu file foto untuk diunggah.');
+        return;
+      }
+
+      const queueSnapshot = selectedUploadQueue.map(entry => ({
+        file: entry.file,
+        customDesc: entry.customDesc
+      }));
+
+      // Tutup form segera setelah tombol ditekan
+      closePhotoFormModal(true);
+
+      isUploading = true;
+      openAddModalBtn.disabled = true;
+
+      try {
+        if (editId) {
+          showToast('Menyimpan perubahan foto...', true);
+          const existing = photos.find(p => String(p.id) === String(editId));
+          const updatePayload = {
+            tanggal,
+            deskripsi: defaultDeskripsi
+          };
+
+          if (queueSnapshot.length > 0) {
+            const uploaded = await uploadFileToStorage(queueSnapshot[0].file, 0);
+            updatePayload.image_url = uploaded.imageUrl;
+            updatePayload.storage_path = uploaded.storagePath;
+
+            if (existing && existing.storagePath) {
+              await dbClient.storage.from(STORAGE_BUCKET).remove([existing.storagePath]);
+            }
+          }
+
+          const { data, error } = await dbClient
+            .from(TABLE_NAME)
+            .update(updatePayload)
+            .eq('id', editId)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          const idx = photos.findIndex(p => String(p.id) === String(editId));
+          if (idx !== -1) {
+            photos[idx] = {
+              id: data.id,
+              src: data.image_url,
+              storagePath: data.storage_path || null,
+              isoDate: data.tanggal,
+              date: formatIndoDate(data.tanggal),
+              desc: data.deskripsi || ''
+            };
+          }
+
+          applyFiltersAndRender();
+          showToast('Perubahan foto berhasil disimpan!');
+        } else {
+          const totalFiles = queueSnapshot.length;
+          const newlyInserted = [];
+          const failedFiles = [];
+
+          for (let i = 0; i < totalFiles; i++) {
+            const entry = queueSnapshot[i];
+            showToast(
+              totalFiles > 1
+                ? `Mengunggah foto ${i + 1} dari ${totalFiles}...`
+                : 'Mengunggah foto...',
+              true
+            );
+
+            try {
+              const uploaded = await uploadFileToStorage(entry.file, i);
+              const caption = (entry.customDesc || '').trim() || defaultDeskripsi || '';
+
+              const { data, error } = await dbClient
+                .from(TABLE_NAME)
+                .insert([
+                  {
+                    image_url: uploaded.imageUrl,
+                    storage_path: uploaded.storagePath,
+                    tanggal,
+                    deskripsi: caption
+                  }
+                ])
+                .select()
+                .single();
+
+              if (error) throw error;
+
+              newlyInserted.push({
+                id: data.id,
+                src: data.image_url,
+                storagePath: data.storage_path || null,
+                isoDate: data.tanggal,
+                date: formatIndoDate(data.tanggal),
+                desc: data.deskripsi || ''
+              });
+            } catch (fileErr) {
+              console.error(`Gagal unggah ${entry.file.name}:`, fileErr);
+              failedFiles.push({ name: entry.file.name, reason: fileErr.message });
+            }
+          }
+
+          if (newlyInserted.length > 0) {
+            photos = [...newlyInserted.reverse(), ...photos];
+          }
+
+          applyFiltersAndRender();
+
+          if (failedFiles.length === 0) {
+            showToast(
+              newlyInserted.length > 1
+                ? `${newlyInserted.length} foto berhasil diunggah!`
+                : 'Foto berhasil diunggah!'
+            );
+          } else {
+            showToast(
+              `${newlyInserted.length} berhasil, ${failedFiles.length} gagal (${failedFiles[0].reason}).`
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Gagal menyimpan:', err);
+        showToast(`Gagal menyimpan: ${err.message || 'Terjadi kesalahan'}`);
+      } finally {
+        isUploading = false;
+        openAddModalBtn.disabled = false;
+      }
+    }
+
+    async function deletePhotoItem(item) {
+      if (!item || !dbClient) return;
+      const confirmed = confirm(`Hapus foto momen "${item.date}" secara permanen?`);
+      if (!confirmed) return;
+
+      showToast('Menghapus foto...', true);
+
+      try {
+        if (item.storagePath) {
+          await dbClient.storage.from(STORAGE_BUCKET).remove([item.storagePath]);
+        }
+
+        const { error } = await dbClient
+          .from(TABLE_NAME)
+          .delete()
+          .eq('id', item.id);
+
+        if (error) throw error;
+
+        photos = photos.filter(p => String(p.id) !== String(item.id));
+        applyFiltersAndRender();
+        showToast('Foto berhasil dihapus.');
+      } catch (err) {
+        console.error('Gagal menghapus foto:', err);
+        showToast(`Gagal menghapus: ${err.message || 'Terjadi kesalahan'}`);
+      }
+    }
+
+    function applyFiltersAndRender() {
+      let list = [...photos];
+      const keyword = searchQuery.trim().toLowerCase();
+
+      if (keyword) {
+        searchBox.classList.add('has-value');
+        const tokens = keyword.split(/\s+/).filter(Boolean);
+        list = list.filter(item => {
+          const indexText = buildSearchIndex(item);
+          return tokens.every(token => indexText.includes(token));
+        });
+      } else {
+        searchBox.classList.remove('has-value');
+      }
+
+      list.sort((a, b) => {
+        return sortOrder === 'newest'
+          ? b.isoDate.localeCompare(a.isoDate)
+          : a.isoDate.localeCompare(b.isoDate);
+      });
+
+      resetFilterLink.classList.toggle('visible', Boolean(keyword));
+      filterSummary.textContent = keyword
+        ? `${list.length} Foto ditemukan`
+        : `${list.length} Foto`;
+
+      filteredPhotos = list;
+
+      if (!list.length) {
+        manageList.innerHTML = '';
+        if (keyword) {
+          emptyTitle.textContent = 'Tidak ada foto yang cocok dengan pencarian.';
+          emptySub.textContent = 'Coba gunakan kata kunci tanggal, bulan, tahun, atau deskripsi lain.';
+          emptyActionBtn.textContent = 'Tampilkan Semua Foto';
+          emptyActionBtn.style.display = 'inline-flex';
+          emptyActionBtn.onclick = resetAllFilters;
+        } else {
+          emptyTitle.textContent = 'Belum ada foto tersimpan.';
+          emptySub.textContent = 'Klik tombol "+ Unggah" untuk menambahkan satu atau banyak foto sekaligus.';
+          emptyActionBtn.textContent = '+ Unggah Foto';
+          emptyActionBtn.style.display = 'inline-flex';
+          emptyActionBtn.onclick = () => openPhotoFormModal();
+        }
+        emptyState.classList.add('visible');
+        return;
+      }
+
+      emptyState.classList.remove('visible');
+      manageList.innerHTML = list.map((item, idx) => {
+        const cleanDesc = (item.desc || '').trim();
+        return `
+          <div class="manage-item" data-index="${idx}">
+            <div class="manage-thumb">
+              <img src="${item.src}" alt="${escapeHtml(cleanDesc || item.date)}" loading="lazy" />
+            </div>
+            <div class="manage-info">
+              <div class="manage-date">${item.date}</div>
+              <div class="manage-desc ${cleanDesc ? '' : 'is-empty'}">
+                ${cleanDesc ? escapeHtml(cleanDesc) : 'Tanpa deskripsi'}
+              </div>
+            </div>
+            <div class="manage-actions">
+              <button type="button" class="btn btn-outline btn-sm edit-item-btn" data-index="${idx}">Edit</button>
+              <button type="button" class="btn btn-danger-outline btn-sm delete-item-btn" data-index="${idx}">Hapus</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      adminScrollArea.scrollTop = 0;
+    }
+
+    manageList.addEventListener('click', (e) => {
+      const editBtn = e.target.closest('.edit-item-btn');
+      if (editBtn) {
+        const item = filteredPhotos[Number(editBtn.dataset.index)];
+        if (item) openPhotoFormModal(item);
+        return;
+      }
+
+      const delBtn = e.target.closest('.delete-item-btn');
+      if (delBtn) {
+        const item = filteredPhotos[Number(delBtn.dataset.index)];
+        if (item) deletePhotoItem(item);
+      }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      applyFiltersAndRender();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      searchQuery = '';
+      searchInput.value = '';
+      searchInput.focus();
+      applyFiltersAndRender();
+    });
+
+    sortButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        sortOrder = btn.dataset.sort;
+        sortButtons.forEach(b => b.classList.toggle('active', b === btn));
+        applyFiltersAndRender();
+      });
+    });
+
+    function resetAllFilters() {
+      searchQuery = '';
+      searchInput.value = '';
+      sortOrder = 'newest';
+      sortButtons.forEach(b => b.classList.toggle('active', b.dataset.sort === 'newest'));
+      applyFiltersAndRender();
+    }
+
+    resetFilterLink.addEventListener('click', resetAllFilters);
+
+    function openPhotoFormModal(itemToEdit = null) {
+      if (isUploading) {
+        showToast('Proses unggah sebelumnya masih berjalan, tunggu sebentar...');
+        return;
+      }
+      photoForm.reset();
+      clearUploadQueue();
+      previewBox.classList.remove('visible');
+      previewImg.src = '';
+
+      if (itemToEdit) {
+        formModalTitle.textContent = 'Edit Foto';
+        editPhotoIdInput.value = itemToEdit.id;
+        photoFileInput.removeAttribute('multiple');
+        fileFieldLabel.textContent = 'Ganti File Foto (Opsional)';
+        dropzoneText.textContent = 'Klik atau seret 1 foto pengganti ke sini';
+        photoDateInput.value = itemToEdit.isoDate;
+        descFieldLabel.textContent = 'Deskripsi Foto (Opsional)';
+        photoDescInput.value = itemToEdit.desc || '';
+        previewImg.src = itemToEdit.src;
+        previewBox.classList.add('visible');
+        submitFormBtn.textContent = 'Simpan Perubahan';
+      } else {
+        formModalTitle.textContent = 'Unggah Foto';
+        editPhotoIdInput.value = '';
+        photoFileInput.setAttribute('multiple', 'multiple');
+        fileFieldLabel.textContent = 'Pilih File Foto (Bisa Banyak Sekaligus)';
+        dropzoneText.textContent = 'Klik atau seret banyak foto ke sini (bisa tambah lagi)';
+        photoDateInput.value = new Date().toISOString().split('T')[0];
+        descFieldLabel.textContent = 'Deskripsi Foto (Opsional)';
+        submitFormBtn.textContent = 'Unggah Foto';
+      }
+
+      photoFormModal.classList.add('open');
+      photoFormModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closePhotoFormModal(force = false) {
+      if (isUploading && !force) return;
+      clearUploadQueue();
+      photoFormModal.classList.remove('open');
+      photoFormModal.setAttribute('aria-hidden', 'true');
+    }
+
+    openAddModalBtn.addEventListener('click', () => openPhotoFormModal());
+    closeFormModalBtn.addEventListener('click', () => closePhotoFormModal());
+    cancelFormBtn.addEventListener('click', () => closePhotoFormModal());
+
+    photoFormModal.addEventListener('click', (e) => {
+      if (e.target === photoFormModal) closePhotoFormModal();
+    });
+
+    photoFileInput.addEventListener('change', () => {
+      if (photoFileInput.files && photoFileInput.files.length > 0) {
+        addFilesToQueue(photoFileInput.files);
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(evtName => {
+      fileDropzone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        fileDropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(evtName => {
+      fileDropzone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        fileDropzone.classList.remove('dragover');
+      });
+    });
+
+    fileDropzone.addEventListener('drop', (e) => {
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        addFilesToQueue(e.dataTransfer.files);
+      }
+    });
+
+    photoForm.addEventListener('submit', savePhotoForm);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && photoFormModal.classList.contains('open')) {
+        closePhotoFormModal();
+      }
+    });
+
+    menuBtn.addEventListener('click', () => {
+      mobileNav.classList.toggle('open');
+      menuBtn.classList.toggle('open');
+    });
+
+    mobileNav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileNav.classList.remove('open');
+        menuBtn.classList.remove('open');
+      });
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+    loadPhotosForAdmin();
+  </script>
+</body>
+</html>
