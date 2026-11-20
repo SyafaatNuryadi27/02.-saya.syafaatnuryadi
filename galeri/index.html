@@ -26,6 +26,7 @@
       --danger: #dc2626;
       --danger-hover: #b91c1c;
       --danger-soft: #fef2f2;
+      --warn: #d97706;
       --gold: #c89b3c;
       --gold-light: #e2bd6b;
       --gold-soft: #fdf8eb;
@@ -103,15 +104,22 @@
       }
     }
 
+    @keyframes barPulse {
+      0%, 100% {
+        opacity: 0.45;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
     /* Header */
     .header {
       position: relative;
       flex-shrink: 0;
       z-index: 100;
       height: var(--header-h);
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: #ffffff;
       border-bottom: 1px solid var(--border);
       box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
     }
@@ -318,6 +326,9 @@
       border-radius: 6px;
       padding: 7px 12px;
       box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
     }
 
     .filter-bar {
@@ -360,6 +371,95 @@
 
     .filter-reset-link:hover {
       text-decoration: underline;
+    }
+
+    /* Indikator Kapasitas Penyimpanan Supabase */
+    .storage-quota-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 9px;
+      border-radius: 5px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 0.72rem;
+    }
+
+    .storage-quota-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .storage-quota-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .storage-quota-bar.is-loading .storage-quota-dot {
+      background: var(--gold);
+      animation: barPulse 1s ease-in-out infinite;
+    }
+
+    .storage-quota-bar.is-warn .storage-quota-dot {
+      background: var(--warn);
+    }
+
+    .storage-quota-bar.is-danger .storage-quota-dot {
+      background: var(--danger);
+    }
+
+    .storage-progress-track {
+      position: relative;
+      flex: 1;
+      min-width: 70px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--border);
+      overflow: hidden;
+    }
+
+    .storage-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+      transition: width 0.35s var(--ease-out), background 0.25s ease;
+    }
+
+    .storage-quota-bar.is-loading .storage-progress-fill {
+      width: 45%;
+      background: linear-gradient(90deg, var(--gold-light), var(--gold));
+      animation: barPulse 1.1s ease-in-out infinite;
+    }
+
+    .storage-quota-bar.is-warn .storage-progress-fill {
+      background: var(--warn);
+    }
+
+    .storage-quota-bar.is-danger .storage-progress-fill {
+      background: var(--danger);
+    }
+
+    .storage-quota-text {
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .storage-quota-sub {
+      color: var(--text-subtle);
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* Indikator Unggah Latar Belakang */
@@ -1054,6 +1154,14 @@
         max-width: none;
         flex: 1;
       }
+      .storage-quota-bar {
+        flex-wrap: wrap;
+        gap: 6px 8px;
+      }
+      .storage-progress-track {
+        flex-basis: 100%;
+        order: 3;
+      }
     }
 
     @media (min-width: 900px) {
@@ -1107,7 +1215,7 @@
   </nav>
 
   <main>
-    <!-- Toolbar Kelola Foto -->
+    <!-- Toolbar Kelola Foto & Kapasitas Penyimpanan Supabase -->
     <div class="filter-dock">
       <div class="container">
         <div class="filter-panel" aria-label="Kelola foto galeri">
@@ -1157,6 +1265,19 @@
                 <span>Unggah</span>
               </button>
             </div>
+          </div>
+
+          <!-- Indikator Loading & Kapasitas Storage Supabase -->
+          <div class="storage-quota-bar is-loading" id="storageQuotaBar" aria-live="polite">
+            <span class="storage-quota-label">
+              <span class="storage-quota-dot" aria-hidden="true"></span>
+              <span>Storage Supabase</span>
+            </span>
+            <div class="storage-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="storageProgressTrack">
+              <div class="storage-progress-fill" id="storageProgressFill"></div>
+            </div>
+            <span class="storage-quota-text" id="storageQuotaText">Menghitung kapasitas...</span>
+            <span class="storage-quota-sub" id="storageQuotaSub"></span>
           </div>
         </div>
       </div>
@@ -1262,6 +1383,8 @@
     const STORAGE_BUCKET = 'galeri';
     const TABLE_NAME = 'galeri_foto';
 
+    // Default kuota Storage Free Tier Supabase = 1 GB (1024 MB)
+    const STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
     const MAX_FILE_SIZE_BYTES = Infinity;
     const MAX_THUMB_PREVIEWS = 40;
     const ALLOWED_IMAGE_EXTENSIONS = [
@@ -1293,6 +1416,12 @@
     const searchInput = document.getElementById('searchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
     const sortButtons = document.querySelectorAll('.sort-seg-btn');
+
+    const storageQuotaBar = document.getElementById('storageQuotaBar');
+    const storageProgressTrack = document.getElementById('storageProgressTrack');
+    const storageProgressFill = document.getElementById('storageProgressFill');
+    const storageQuotaText = document.getElementById('storageQuotaText');
+    const storageQuotaSub = document.getElementById('storageQuotaSub');
 
     const menuBtn = document.getElementById('menuBtn');
     const mobileNav = document.getElementById('mobileNav');
@@ -1326,6 +1455,7 @@
     let selectedUploadQueue = [];
     let backgroundUploadJobs = [];
     let isWorkerRunning = false;
+    let isStorageLoading = false;
     let searchQuery = '';
     let sortOrder = 'newest';
     let renderScheduled = false;
@@ -1348,11 +1478,105 @@
     }
 
     function formatBytes(bytes) {
-      if (!bytes) return '0 B';
+      if (!bytes || bytes <= 0) return '0 B';
+      const gb = bytes / (1024 * 1024 * 1024);
+      if (gb >= 1) return `${gb.toFixed(2)} GB`;
       const mb = bytes / (1024 * 1024);
       if (mb >= 1) return `${mb.toFixed(2)} MB`;
       const kb = bytes / 1024;
       return `${Math.round(kb)} KB`;
+    }
+
+    function setStorageLoadingState(loading) {
+      isStorageLoading = loading;
+      storageQuotaBar.classList.toggle('is-loading', loading);
+      if (loading) {
+        storageQuotaBar.classList.remove('is-warn', 'is-danger');
+        storageQuotaText.textContent = 'Memuat kapasitas storage...';
+        storageQuotaSub.textContent = '';
+        storageProgressTrack.setAttribute('aria-valuenow', '0');
+      }
+    }
+
+    function renderStorageQuota(usedBytes, fileCount) {
+      const safeUsed = Math.max(0, Number(usedBytes) || 0);
+      const rawPct = (safeUsed / STORAGE_LIMIT_BYTES) * 100;
+      const clampedPct = Math.min(100, Math.max(0, rawPct));
+      const displayPct = rawPct > 0 && rawPct < 0.01 ? '< 0.01' : rawPct.toFixed(2);
+
+      storageQuotaBar.classList.remove('is-loading', 'is-warn', 'is-danger');
+      if (rawPct >= 90) {
+        storageQuotaBar.classList.add('is-danger');
+      } else if (rawPct >= 70) {
+        storageQuotaBar.classList.add('is-warn');
+      }
+
+      storageProgressFill.style.width = `${clampedPct}%`;
+      storageProgressTrack.setAttribute('aria-valuenow', String(Math.round(clampedPct)));
+      storageQuotaText.textContent = `${formatBytes(safeUsed)} / ${formatBytes(STORAGE_LIMIT_BYTES)} (${displayPct}%)`;
+      storageQuotaSub.textContent = typeof fileCount === 'number' ? `${fileCount} file di bucket "${STORAGE_BUCKET}"` : '';
+    }
+
+    async function listAllBucketObjectsRecursive(prefix = '') {
+      let totalBytes = 0;
+      let totalFiles = 0;
+      const limit = 100;
+      let offset = 0;
+
+      while (true) {
+        const { data, error } = await dbClient.storage
+          .from(STORAGE_BUCKET)
+          .list(prefix, {
+            limit,
+            offset,
+            sortBy: { column: 'name', order: 'asc' }
+          });
+
+        if (error) throw error;
+        const entries = data || [];
+        if (entries.length === 0) break;
+
+        for (const entry of entries) {
+          if (!entry.name) continue;
+          const fullPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+          const size = entry.metadata && typeof entry.metadata.size === 'number'
+            ? entry.metadata.size
+            : null;
+
+          if (size !== null) {
+            totalBytes += size;
+            totalFiles += 1;
+          } else {
+            const sub = await listAllBucketObjectsRecursive(fullPath);
+            totalBytes += sub.totalBytes;
+            totalFiles += sub.totalFiles;
+          }
+        }
+
+        if (entries.length < limit) break;
+        offset += limit;
+      }
+
+      return { totalBytes, totalFiles };
+    }
+
+    async function refreshSupabaseStorageUsage() {
+      if (!dbClient) {
+        setStorageLoadingState(false);
+        storageQuotaText.textContent = 'Storage tidak terhubung';
+        return;
+      }
+
+      setStorageLoadingState(true);
+      try {
+        const { totalBytes, totalFiles } = await listAllBucketObjectsRecursive('');
+        renderStorageQuota(totalBytes, totalFiles);
+      } catch (err) {
+        console.warn('Gagal menghitung kapasitas storage:', err);
+        setStorageLoadingState(false);
+        storageQuotaText.textContent = 'Gagal memuat kapasitas';
+        storageQuotaSub.textContent = '';
+      }
     }
 
     function isValidImageFile(file) {
@@ -1576,6 +1800,8 @@
 
       if (!dbClient) {
         loadingState.classList.remove('visible');
+        setStorageLoadingState(false);
+        storageQuotaText.textContent = 'Storage tidak terhubung';
         filterSummary.textContent = '0 Foto';
         emptyTitle.textContent = 'Konfigurasi Galeri Belum Diisi';
         emptySub.textContent = 'Silakan periksa kembali pengaturan koneksi penyimpanan.';
@@ -1583,6 +1809,8 @@
         emptyState.classList.add('visible');
         return;
       }
+
+      refreshSupabaseStorageUsage();
 
       try {
         const { data, error } = await dbClient
@@ -1653,6 +1881,8 @@
       isWorkerRunning = true;
       updateBackgroundIndicator();
 
+      let storageChanged = false;
+
       while (backgroundUploadJobs.length > 0) {
         const job = backgroundUploadJobs[0];
 
@@ -1671,6 +1901,7 @@
               const uploaded = await uploadFileToStorage(job.replacementFile, 0);
               updatePayload.image_url = uploaded.imageUrl;
               updatePayload.storage_path = uploaded.storagePath;
+              storageChanged = true;
 
               if (existing && existing.storagePath) {
                 await dbClient.storage.from(STORAGE_BUCKET).remove([existing.storagePath]);
@@ -1725,6 +1956,7 @@
 
               try {
                 const uploaded = await uploadFileToStorage(entry.file, idx);
+                storageChanged = true;
                 const caption = (entry.customDesc || '').trim() || job.defaultDeskripsi || '';
 
                 const { data, error } = await dbClient
@@ -1786,6 +2018,9 @@
 
       isWorkerRunning = false;
       updateBackgroundIndicator();
+      if (storageChanged) {
+        refreshSupabaseStorageUsage();
+      }
     }
 
     function savePhotoForm(e) {
@@ -1814,7 +2049,6 @@
         customDesc: entry.customDesc
       }));
 
-      // Tutup modal segera agar proses berjalan ringan di latar belakang
       closePhotoFormModal();
 
       if (editId) {
@@ -1865,6 +2099,7 @@
 
         photos = photos.filter(p => String(p.id) !== String(item.id));
         applyFiltersAndRender();
+        refreshSupabaseStorageUsage();
         showToast('Foto berhasil dihapus.');
       } catch (err) {
         console.error('Gagal menghapus foto:', err);
